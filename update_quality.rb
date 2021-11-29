@@ -26,8 +26,6 @@ def update_quality(awards)
     # Handle expired awards seperately from aging awards
     if award.expired?
       handle_expiration(award)
-    # elsif award.expires_today?
-    #   handle_expires_today(award)
     else
       handle_aging(award)
     end
@@ -38,28 +36,6 @@ def update_quality(awards)
 end
 
 private
-
-# def handle_expires_today(award)
-#   # Handle plans that decrease value as they age
-#   unless INCREASE_AS_AGE_PLANS.include?(award.name)
-
-#     # These planse decrease quality as they age
-#     award.change_quality_by -2
-#     return
-#   end
-
-#   # Quality cannot exceed 50
-#   return if award.maximum_quality_reached
-
-#   # Handle non-variable increase plans
-#   unless VARIABLE_INCREASE_PLANS.include?(award.name)
-#     award.change_quality_by 2
-#     return
-#   end
-
-#   # Variable plans zero out on the days they expire
-#   award.quality = 0 if award.expires_today?
-# end
 
 def handle_aging(award)
   # Handle plans that decrease value as they age
