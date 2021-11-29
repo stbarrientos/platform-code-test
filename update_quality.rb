@@ -19,6 +19,8 @@ VARIABLE_INCREASE_AWARDS = ['Blue Compare'].freeze
 STATIC_QUALITY_AWARDS = ['Blue Distinction Plus'].freeze
 
 # Call on an array of Awards to calculate the new qualities and expires_in values for each
+# Note: this method is built to provide custom logic for specific plans outlined in the constants above. Please
+# check to see if you need to update one of those constants before changing the logic in these methods.
 def update_quality(awards)
   awards.each do |award|
     # Handle static awards
@@ -42,24 +44,22 @@ end
 private
 
 ### These helper methods are called by #update_quality and are not meant to be called directly ###
+### All helper methods return an Award                                                         ###
 
-# This method calculates the new quality and expires_in for awards that have not yet expired
+# Calculate the new quality and expires_in for awards that HAVE NOT expired
 def handle_aging(award)
   # Handle awards that decrease value as they age
   unless INCREASE_AS_AGE_AWARDS.include?(award.name)
 
     # These awards decrease quality as they age
     apply_quality_decrease(award)
-    return
+    return award
   end
-
-  # Quality cannot exceed 50
-  return if award.maximum_quality_reached
 
   # Handle non-variable increase awards
   unless VARIABLE_INCREASE_AWARDS.include?(award.name)
     award.change_quality_by 1
-    return
+    return award
   end
 
   # Variable awards increase quality by different rates depending on age
@@ -73,29 +73,35 @@ def handle_aging(award)
     # Variable Increase awards increase in quality by one until they expire
     award.change_quality_by 1
   end
+
+  award
 end
 
-# This method calculates the new quality and expires_in for awards that have expired
+# Calculate the new quality and expires_in for awards that HAVE expired
 def handle_expiration(award)
   # Handle awards that increase quality after expiration
   if INCREASE_AFTER_EXPIRATION_AWARDS.include?(award.name)
     award.change_quality_by 2
-    return
+    return award
   end
 
-  # Blue Compare awards lose all quality when they expire
-  if award.name == 'Blue Compare'
+  # Handle awards that lose all quality when they expire
+  if ZERO_AFTER_EXPIRATION_AWARDS.include?(award.name)
     award.quality = 0
-    return
+    return award
   end
 
+  # Update the quality for awards that decrease quality when expired
   apply_quality_decrease(award, base_decrease: -2)
+
+  award
 end
 
-# This utility method takes a base quality decrease and applies modifiers to is based on the award name
+# Given a base quality decrease, applies modifiers to it based on the award name
 def apply_quality_decrease(award, base_decrease: -1)
   # We need to determine the total decrease based on plan and base decrease
   diff = base_decrease
   diff *= 2 if DOUBLE_DECREASE_AS_AGE_AWARDS.include?(award.name)
   award.change_quality_by diff
+  award
 end
